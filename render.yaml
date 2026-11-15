@@ -1,0 +1,20 @@
+# Render Blueprint for the FastAPI analytics backend.
+# Deploy: Render dashboard -> New -> Blueprint -> select this repository.
+services:
+  - type: web
+    name: monetary-api
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.1
+      - key: MONETARY_DATA_MODE
+        value: auto
+      - key: FRED_API_KEY
+        sync: false
+      - key: MONETARY_CORS_ORIGINS
+        value: http://localhost:3000

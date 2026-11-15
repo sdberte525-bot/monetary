@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Terminal palette. Dark-only by design (institutional terminal aesthetic).
+   Chart series colors are the validated dark-mode categorical steps
+   (CVD-checked against the panel surface #0f1b2d). */
+:root {
+  color-scheme: dark;
+  --bg: 216 14% 6%;        /* charcoal #0d0f12 */
+  --panel: 215 50% 12%;    /* deep navy #0f1b2d */
+  --panel2: 215 45% 15%;
+  --border: 214 32% 22%;
+  --fg: 210 25% 93%;
+  --muted: 213 15% 62%;
+  --accent: 213 76% 56%;   /* #3987e5 */
+  --pos: 145 63% 49%;      /* P&L gain text  */
+  --neg: 0 72% 64%;        /* P&L loss text  */
+  --warn: 41 95% 54%;      /* amber risk warnings */
+
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --grid: #1f2f45;
+  --axis: #8b9bb0;
+}
+
+html, body { background: hsl(var(--bg)); color: hsl(var(--fg)); }
+body { font-feature-settings: "tnum" 1, "cv11" 1; }
+
+.num { font-variant-numeric: tabular-nums; font-family: var(--font-mono), ui-monospace, monospace; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+input[type="number"]::-webkit-inner-spin-button { opacity: 0.4; }
+
+.recharts-cartesian-grid line { stroke: var(--grid); }
+.recharts-text { fill: var(--axis); font-size: 11px; }
+.recharts-legend-item-text { color: hsl(var(--fg)) !important; font-size: 11px; }
