@@ -11,10 +11,10 @@ What it does:
 
 What it is not: a forecasting model. The scenario tools run on assumptions you set and can see, and the historical replays are stress tests, not backtests.
 
-Stack: Python (FastAPI, NumPy, SciPy, pandas) with 96 tests against textbook and closed-form benchmarks, plus a Next.js/TypeScript front end.
+Stack: Python (FastAPI, NumPy, SciPy, pandas) with 114 tests against textbook and closed-form benchmarks, plus a Next.js/TypeScript front end. The live site runs the Python engine directly in your browser via WebAssembly.
 
 I'd welcome feedback from anyone in fixed-income research or portfolio management, especially on the transmission assumptions.
 
-[GitHub link] · [Live demo link]
+Code: https://github.com/sdberte525-bot/monetary · Live: https://sdberte525-bot.github.io/monetary/
 
 #FixedIncome #MonetaryPolicy #Treasuries #QuantitativeFinance #Python #Economics

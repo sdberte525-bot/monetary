@@ -7,6 +7,7 @@ import {
   Menu, SlidersHorizontal, Target, X,
 } from "lucide-react";
 import { useApi, type Provenance } from "@/lib/api";
+import { BROWSER_ENGINE, startEngine, subscribeEngine, type EngineStatus } from "@/lib/engine";
 import { usePortfolios } from "@/lib/portfolio-store";
 import { cn } from "@/lib/utils";
 import { Badge, Select, Tip } from "@/components/ui/primitives";
@@ -52,6 +53,12 @@ function DataStatus() {
             <b>FRED series:</b> {Object.values(data.fred).filter((p) => p.mode === "live").length} live /{" "}
             {Object.keys(data.fred).length} loaded (others from bundled snapshot retrieved {data.snapshot_retrieved_at_utc})
           </div>
+          {BROWSER_ENGINE && (
+            <div className="text-muted">
+              Static website: the Python analytics engine runs in your browser (WebAssembly). Browsers cannot download Treasury/FRED data
+              directly, so this site uses official data retrieved at build time and is rebuilt daily.
+            </div>
+          )}
           {Object.keys(data.errors).length > 0 && <div className="text-warn">Refresh errors: {Object.keys(data.errors).join(", ")}</div>}
         </div>
       }
@@ -81,6 +88,44 @@ function PortfolioSelector() {
         className="max-w-[220px]"
         options={portfolios.map((p) => ({ value: p.id, label: `${p.kind === "user" ? "★ " : ""}${p.name}` }))}
       />
+    </div>
+  );
+}
+
+function EngineBanner() {
+  const [st, setSt] = useState<EngineStatus>({ stage: "idle" });
+  useEffect(() => {
+    if (!BROWSER_ENGINE) return;
+    startEngine();
+    return subscribeEngine(setSt);
+  }, []);
+  if (!BROWSER_ENGINE || st.stage === "ready") return null;
+  const err = st.stage === "error";
+  return (
+    <div
+      role="status"
+      className={cn(
+        "fixed bottom-3 right-3 z-50 max-w-sm rounded-md border px-3 py-2 text-xs shadow-2xl",
+        err ? "border-neg/50 bg-[#2a1215] text-neg" : "border-accent/50 bg-[#0a1322] text-fg",
+      )}
+    >
+      {err ? (
+        <>
+          <div className="font-semibold">Analytics engine failed to start</div>
+          <div className="mt-0.5 text-fg/80">{st.error}</div>
+        </>
+      ) : (
+        <>
+          <div className="flex items-center gap-2 font-semibold">
+            <span className="h-3 w-3 animate-spin rounded-full border-2 border-border border-t-accent" />
+            Starting the analytics engine…
+          </div>
+          <div className="mt-0.5 text-muted">{st.stage === "idle" ? "Initializing" : st.stage}</div>
+          <div className="mt-1 text-[10px] text-muted">
+            The Python engine runs in your browser. The first visit downloads about 40 MB (cached afterwards).
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -184,6 +229,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
         <main className="flex-1 p-3 md:p-4">{children}</main>
+        <EngineBanner />
         <footer className="border-t border-border px-4 py-2 text-[10px] text-muted">
           MONETARY is a research and education tool. Scenario outputs are hypothetical and based on stated assumptions; nothing here is a
           forecast or investment advice. Data: U.S. Department of the Treasury; FRED, Federal Reserve Bank of St. Louis; Board of Governors of

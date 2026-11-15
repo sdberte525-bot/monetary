@@ -2,6 +2,8 @@
 
 **An interactive quantitative research platform exploring the relationship between monetary policy, Treasury yield curves, and fixed-income portfolio risk.**
 
+**Live site:** https://sdberte525-bot.github.io/monetary/ — the full Python analytics engine runs in your browser (first visit downloads ~40 MB and takes ~15 s; cached afterwards).
+
 MONETARY is a full-stack fixed-income analytics application: a tested Python pricing and risk engine (NumPy / SciPy / pandas, served through FastAPI) behind a Next.js research terminal. It ingests official U.S. Treasury and Federal Reserve data, bootstraps a discount curve from Treasury par yields, prices and risk-manages bond portfolios with full cash-flow revaluation, translates hypothetical Federal Reserve decisions into yield-curve shocks through explicit, editable assumptions, replays historical policy episodes, and solves constrained portfolio-construction problems.
 
 > **What it is not:** a forecasting model. Scenario tools translate *user-specified* assumptions into analytics; they do not predict FOMC decisions or Treasury yields. Historical replays are stress tests, not backtests. Every assumption is shown next to the result it produces.
@@ -76,20 +78,26 @@ monetary/
 │   │   │   ├── narrative.py       template commentary from computed outputs only
 │   │   │   └── report.py          research brief + ReportLab PDF
 │   │   ├── api/                   Pydantic schemas, routes, shared helpers
+│   │   ├── browser.py             in-browser dispatcher: same routes, run in Pyodide (static site)
 │   │   └── main.py                FastAPI app, error mapping, CORS, gzip
 │   ├── data/snapshot/             bundled official data (Treasury 1990–2026, FRED) + metadata.json
 │   ├── scripts/build_snapshot.py  re-downloads the snapshot from official sources
-│   └── tests/                     96 pytest tests
+│   └── tests/                     114 pytest tests
 ├── frontend/                      Next.js 15 · TypeScript · Tailwind · Radix (shadcn/ui pattern) · Recharts
 │   ├── app/                       one route per section (9) + layout
 │   ├── components/                shell, charts, shock editor, ui primitives
-│   └── lib/                       typed API client & hooks, portfolio store (localStorage), CSV, glossary
+│   ├── lib/                       typed API client & hooks, in-browser engine bridge, portfolio store, CSV, glossary
+│   ├── public/engine/worker.js    Web Worker that boots Pyodide and the Python engine
+│   └── scripts/bundle-engine.mjs  packs backend/app + data snapshot for the static build
 ├── render.yaml                    Render blueprint (backend)
 ├── .github/workflows/ci.yml       pytest + typecheck + production build
+├── .github/workflows/pages.yml    daily data refresh → tests → static build → GitHub Pages
 └── docs/screenshots/
 ```
 
-**Request flow:** the browser calls relative `/api/*`; Next.js rewrites to the FastAPI backend (`BACKEND_URL`), so there is one configuration point and no CORS in normal use. The engine is stateless and deterministic: given a curve date and positions, every number is reproducible. Portfolios and saved scenarios live in the user's browser.
+**Two deployment modes, one engine.**
+- *Server mode:* the browser calls relative `/api/*`; Next.js rewrites to the FastAPI backend (`BACKEND_URL`), so there is one configuration point and no CORS in normal use.
+- *Static mode (the live site):* `NEXT_PUBLIC_ENGINE=browser` produces a static export. The same Python package runs in a Web Worker under [Pyodide](https://pyodide.org) (CPython compiled to WebAssembly, with NumPy, pandas, SciPy, Pydantic and FastAPI). `app/browser.py` matches each request against the FastAPI router, validates parameters with Pydantic and calls the route function directly; a parity test asserts its responses equal the server's for every endpoint type. Browsers cannot download Treasury/FRED data directly (no CORS), so the static site uses the snapshot built by the deployment workflow, which re-downloads the official data every weekday and labels it with its retrieval time. The engine is stateless and deterministic: given a curve date and positions, every number is reproducible. Portfolios and saved scenarios live in the user's browser.
 
 ## Financial models
 
@@ -170,7 +178,7 @@ cd backend && . .venv/bin/activate && MONETARY_DATA_MODE=snapshot python -m pyte
 cd frontend && npm run typecheck && npm run build
 ```
 
-96 backend tests cover: zero-coupon and coupon prices against closed forms and textbook values (Fabozzi 134.6722 and 91.9770; Hull Table 4.6 94.213 / 2.653), 50 randomized bonds against closed-form price and Macaulay duration, YTM round trips, duration and convexity vs finite differences, DV01 sign and magnitude, ACT/ACT and 30/360 accrued interest by hand, EOM schedules, par-bond repricing through the bootstrap, KRDs summing to effective duration, portfolio aggregation and scaling identities, parallel and non-parallel shocks (including locality), convexity improving approximations, policy-channel decomposition, optimizer constraints/residuals/infeasibility, missing-data handling, no-look-ahead date alignment, every cited rate-change announcement aligning with a FRED target change, API validation, and single-page PDF output. CI runs the suite plus a frontend typecheck and production build.
+114 backend tests cover: zero-coupon and coupon prices against closed forms and textbook values (Fabozzi 134.6722 and 91.9770; Hull Table 4.6 94.213 / 2.653), 50 randomized bonds against closed-form price and Macaulay duration, YTM round trips, duration and convexity vs finite differences, DV01 sign and magnitude, ACT/ACT and 30/360 accrued interest by hand, EOM schedules, par-bond repricing through the bootstrap, KRDs summing to effective duration, portfolio aggregation and scaling identities, parallel and non-parallel shocks (including locality), convexity improving approximations, policy-channel decomposition, optimizer constraints/residuals/infeasibility, missing-data handling, no-look-ahead date alignment, every cited rate-change announcement aligning with a FRED target change, API validation, single-page PDF output, and response parity between the in-browser dispatcher and the FastAPI server. CI runs the suite plus a frontend typecheck and production build.
 
 ## Deployment
 
@@ -181,7 +189,14 @@ cd frontend && npm run typecheck && npm run build
 
 A `backend/Dockerfile` is included for Fly.io, Railway, Cloud Run, etc.
 
-**Frontend → Vercel:**
+**Static site → GitHub Pages (how the live site is deployed):** `.github/workflows/pages.yml` runs on every push to `main` and each weekday at 23:17 UTC. It refreshes the official data, runs the test suite on that data, builds the static export and publishes it to the `gh-pages` branch, served at `https://<user>.github.io/<repo>/`. One-time setup if the site does not appear: repository *Settings → Pages → Build and deployment → Deploy from a branch → `gh-pages` / root*.
+
+Build and preview the static site locally:
+```bash
+cd frontend && node scripts/bundle-engine.mjs && NEXT_PUBLIC_ENGINE=browser npm run build && npx serve out
+```
+
+**Frontend → Vercel (server mode):**
 1. Vercel → *Add New Project* → import the repo → set **Root Directory** to `frontend`.
 2. Add environment variable `BACKEND_URL=https://monetary-api.onrender.com` (used by the `/api/*` rewrite at build time).
 3. Deploy. Redeploy the frontend if the backend URL changes.
@@ -227,7 +242,7 @@ Numbers below were produced by the app on the Treasury curve of **2026-11-13** (
 
 ## Resume bullet
 
-> Built **MONETARY**, a full-stack fixed-income risk terminal (Python/FastAPI, NumPy/SciPy/pandas, Next.js/TypeScript) that ingests U.S. Treasury and FRED data, bootstraps a zero curve from par yields, prices and risk-manages bond portfolios (duration, convexity, DV01, key-rate durations, full-revaluation scenario P&L), translates hypothetical Fed decisions into curve shocks via explicit pass-through assumptions, replays eight cited policy episodes, and runs constrained SLSQP portfolio optimization; validated with 96 unit tests against closed-form and textbook benchmarks.
+> Built **MONETARY**, a full-stack fixed-income risk terminal (Python/FastAPI, NumPy/SciPy/pandas, Next.js/TypeScript) that ingests U.S. Treasury and FRED data, bootstraps a zero curve from par yields, prices and risk-manages bond portfolios (duration, convexity, DV01, key-rate durations, full-revaluation scenario P&L), translates hypothetical Fed decisions into curve shocks via explicit pass-through assumptions, replays eight cited policy episodes, and runs constrained SLSQP portfolio optimization; validated with 114 unit tests against closed-form and textbook benchmarks; deployed as a static site with the Python engine running client-side via Pyodide/WebAssembly.
 
 A LinkedIn launch post is in [`docs/LINKEDIN_POST.md`](docs/LINKEDIN_POST.md).
 

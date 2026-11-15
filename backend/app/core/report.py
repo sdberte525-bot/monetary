@@ -4,13 +4,6 @@ from __future__ import annotations
 import io
 from datetime import datetime, timezone
 
-from reportlab.lib import colors
-from reportlab.lib.enums import TA_LEFT
-from reportlab.lib.pagesizes import LETTER
-from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.lib.units import inch
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
-
 from app.core.narrative import _money, risk_observations, scenario_commentary
 
 LIMITATIONS = [
@@ -72,6 +65,14 @@ def build_brief(
 
 
 def render_pdf(brief: dict) -> bytes:
+    # ReportLab is imported lazily so the in-browser engine only downloads it when a PDF is requested.
+    from reportlab.lib import colors
+    from reportlab.lib.enums import TA_LEFT
+    from reportlab.lib.pagesizes import LETTER
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.units import inch
+    from reportlab.platypus import Paragraph, SimpleDocTemplate
+
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=LETTER, leftMargin=0.5 * inch, rightMargin=0.5 * inch,
                             topMargin=0.4 * inch, bottomMargin=0.4 * inch, title=brief["title"],
@@ -136,6 +137,9 @@ def render_pdf(brief: dict) -> bytes:
 
 
 def _table(rows, font=7.5):
+    from reportlab.lib import colors
+    from reportlab.platypus import Table, TableStyle
+
     t = Table(rows, hAlign="LEFT", repeatRows=1)
     t.setStyle(TableStyle([
         ("FONT", (0, 0), (-1, -1), "Helvetica", font),

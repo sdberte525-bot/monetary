@@ -1,0 +1,70 @@
+name: Deploy website (GitHub Pages)
+
+# Static build: the Python engine runs in the visitor's browser (Pyodide).
+# Each run re-downloads the official Treasury/FRED data so the published
+# snapshot stays current; if the download fails, the committed snapshot is used.
+on:
+  push:
+    branches: [main]
+  schedule:
+    # Weekdays 23:17 UTC, after Treasury publishes the day's par yield curve.
+    - cron: "17 23 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+
+      - name: Install engine dependencies
+        working-directory: backend
+        run: pip install -r requirements-dev.txt
+
+      - name: Refresh official data snapshot
+        working-directory: backend
+        run: |
+          cp -r data/snapshot /tmp/snapshot_backup
+          if ! python -m scripts.build_snapshot; then
+            rm -rf data/snapshot && cp -r /tmp/snapshot_backup data/snapshot
+            echo "::warning::Official data refresh failed; publishing the committed snapshot."
+          fi
+
+      - name: Test engine on the data being published
+        working-directory: backend
+        env: { MONETARY_DATA_MODE: snapshot }
+        run: python -m pytest -q
+
+      - uses: actions/setup-node@v4
+        with: { node-version: "22", cache: npm, cache-dependency-path: frontend/package-lock.json }
+
+      - name: Build static site
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_ENGINE: browser
+          NEXT_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}
+        run: |
+          npm ci
+          node scripts/bundle-engine.mjs
+          npm run build
+          touch out/.nojekyll
+
+      - name: Publish to gh-pages branch
+        working-directory: frontend/out
+        run: |
+          git init -q -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Deploy ${GITHUB_SHA::7} ($(date -u +%Y-%m-%dT%H:%MZ))"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" gh-pages

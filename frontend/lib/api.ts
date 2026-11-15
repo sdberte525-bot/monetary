@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { BROWSER_ENGINE, b64ToBytes, engineRequest } from "./engine";
 
 export const TENORS = ["1M", "3M", "6M", "1Y", "2Y", "3Y", "5Y", "7Y", "10Y", "20Y", "30Y"] as const;
 export type Tenor = (typeof TENORS)[number];
@@ -101,8 +102,31 @@ function detailToString(d: unknown): string {
   return JSON.stringify(d);
 }
 
+async function engineFetch(path: string, method: string, json: unknown): Promise<{ ok: boolean; status: number; text: () => string; bytes: () => Uint8Array; contentType: string }> {
+  const r = await engineRequest(method, path, json !== undefined ? JSON.stringify(json) : undefined);
+  return {
+    ok: r.status < 400,
+    status: r.status,
+    contentType: r.contentType,
+    text: () => (r.isB64 ? "" : r.payload),
+    bytes: () => (r.isB64 ? b64ToBytes(r.payload) : new TextEncoder().encode(r.payload)),
+  };
+}
+
 export async function apiFetch<T>(path: string, init?: RequestInit & { json?: unknown }): Promise<T> {
   const { json, ...rest } = init ?? {};
+  if (BROWSER_ENGINE) {
+    const r = await engineFetch(path, json !== undefined ? "POST" : rest.method ?? "GET", json);
+    if (rest.signal?.aborted) throw new DOMException("aborted", "AbortError");
+    let parsed: unknown = null;
+    try {
+      parsed = JSON.parse(r.text());
+    } catch {
+      /* non-JSON */
+    }
+    if (!r.ok) throw new ApiError(detailToString((parsed as { detail?: unknown })?.detail ?? `${r.status}`));
+    return parsed as T;
+  }
   const res = await fetch(path, {
     ...rest,
     method: json !== undefined ? "POST" : rest.method ?? "GET",
@@ -123,7 +147,28 @@ export async function apiFetch<T>(path: string, init?: RequestInit & { json?: un
   return (await res.json()) as T;
 }
 
+function saveBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export async function apiDownload(path: string, json: unknown, filename: string) {
+  if (BROWSER_ENGINE) {
+    const r = await engineFetch(path, "POST", json);
+    if (!r.ok) {
+      let msg = `${r.status}`;
+      try {
+        msg = detailToString(JSON.parse(r.text()).detail);
+      } catch {}
+      throw new ApiError(msg);
+    }
+    saveBlob(new Blob([r.bytes() as BlobPart], { type: r.contentType }), filename);
+    return;
+  }
   const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(json) });
   if (!res.ok) {
     let msg = `${res.status}`;
@@ -132,13 +177,7 @@ export async function apiDownload(path: string, json: unknown, filename: string)
     } catch {}
     throw new ApiError(msg);
   }
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+  saveBlob(await res.blob(), filename);
 }
 
 type State<T> = { data: T | null; error: string | null; loading: boolean };
