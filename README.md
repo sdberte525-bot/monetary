@@ -2,7 +2,7 @@
 
 **An interactive quantitative research platform exploring the relationship between monetary policy, Treasury yield curves, and fixed-income portfolio risk.**
 
-**Live site:** https://sdberte525-bot.github.io/monetary/ — the full Python analytics engine runs in your browser (first visit downloads ~40 MB and takes ~15 s; cached afterwards).
+**Live site:** deployed on Vercel — the full Python analytics engine runs in your browser (first visit downloads ~40 MB and takes ~15 s; cached afterwards).
 
 MONETARY is a full-stack fixed-income analytics application: a tested Python pricing and risk engine (NumPy / SciPy / pandas, served through FastAPI) behind a Next.js research terminal. It ingests official U.S. Treasury and Federal Reserve data, bootstraps a discount curve from Treasury par yields, prices and risk-manages bond portfolios with full cash-flow revaluation, translates hypothetical Federal Reserve decisions into yield-curve shocks through explicit, editable assumptions, replays historical policy episodes, and solves constrained portfolio-construction problems.
 
@@ -91,13 +91,14 @@ monetary/
 │   └── scripts/bundle-engine.mjs  packs backend/app + data snapshot for the static build
 ├── render.yaml                    Render blueprint (backend)
 ├── .github/workflows/ci.yml       pytest + typecheck + production build
-├── .github/workflows/pages.yml    daily data refresh → tests → static build → GitHub Pages
+├── .github/workflows/data-refresh.yml  weekday official-data refresh → tests → commit (triggers redeploy)
+├── vercel.json                    static-site build for Vercel (in-browser engine)
 └── docs/screenshots/
 ```
 
 **Two deployment modes, one engine.**
 - *Server mode:* the browser calls relative `/api/*`; Next.js rewrites to the FastAPI backend (`BACKEND_URL`), so there is one configuration point and no CORS in normal use.
-- *Static mode (the live site):* `NEXT_PUBLIC_ENGINE=browser` produces a static export. The same Python package runs in a Web Worker under [Pyodide](https://pyodide.org) (CPython compiled to WebAssembly, with NumPy, pandas, SciPy, Pydantic and FastAPI). `app/browser.py` matches each request against the FastAPI router, validates parameters with Pydantic and calls the route function directly; a parity test asserts its responses equal the server's for every endpoint type. Browsers cannot download Treasury/FRED data directly (no CORS), so the static site uses the snapshot built by the deployment workflow, which re-downloads the official data every weekday and labels it with its retrieval time. The engine is stateless and deterministic: given a curve date and positions, every number is reproducible. Portfolios and saved scenarios live in the user's browser.
+- *Static mode (the live site):* `NEXT_PUBLIC_ENGINE=browser` produces a static export. The same Python package runs in a Web Worker under [Pyodide](https://pyodide.org) (CPython compiled to WebAssembly, with NumPy, pandas, SciPy, Pydantic and FastAPI). `app/browser.py` matches each request against the FastAPI router, validates parameters with Pydantic and calls the route function directly; a parity test asserts its responses equal the server's for every endpoint type. Browsers cannot download Treasury/FRED data directly (no CORS), so the static site serves the bundled snapshot; a scheduled workflow re-downloads the official data every weekday, tests the engine on it and commits it, which redeploys the site. The data are always labeled with their retrieval time. The engine is stateless and deterministic: given a curve date and positions, every number is reproducible. Portfolios and saved scenarios live in the user's browser.
 
 ## Financial models
 
@@ -189,17 +190,19 @@ cd frontend && npm run typecheck && npm run build
 
 A `backend/Dockerfile` is included for Fly.io, Railway, Cloud Run, etc.
 
-**Static site → GitHub Pages (how the live site is deployed):** `.github/workflows/pages.yml` runs on every push to `main` and each weekday at 23:17 UTC. It refreshes the official data, runs the test suite on that data, builds the static export and publishes it to the `gh-pages` branch, served at `https://<user>.github.io/<repo>/`. One-time setup if the site does not appear: repository *Settings → Pages → Build and deployment → Deploy from a branch → `gh-pages` / root*.
+**Static website → Vercel (how the live site is deployed; no backend server needed):**
+1. vercel.com → sign in with GitHub → *Add New → Project* → import this repository.
+2. Leave every setting as detected — the root `vercel.json` installs `frontend/`, bundles the Python engine and data, and publishes `frontend/out`. Choose the project name you want in the URL (e.g. `monetary-terminal` → `monetary-terminal.vercel.app`).
+3. Deploy. Every push to `main` — including the weekday data-refresh commits from `.github/workflows/data-refresh.yml` — redeploys automatically.
 
 Build and preview the static site locally:
 ```bash
 cd frontend && node scripts/bundle-engine.mjs && NEXT_PUBLIC_ENGINE=browser npm run build && npx serve out
 ```
 
-**Frontend → Vercel (server mode):**
-1. Vercel → *Add New Project* → import the repo → set **Root Directory** to `frontend`.
-2. Add environment variable `BACKEND_URL=https://monetary-api.onrender.com` (used by the `/api/*` rewrite at build time).
-3. Deploy. Redeploy the frontend if the backend URL changes.
+**Frontend → Vercel (server mode, with the Render backend):** create a second Vercel project with *Root Directory* `frontend` and *Framework* Next.js:
+1. Add environment variable `BACKEND_URL=https://monetary-api.onrender.com` (used by the `/api/*` rewrite at build time).
+2. Deploy. Redeploy the frontend if the backend URL changes.
 
 Because the browser only talks to the Vercel domain (Next.js proxies `/api/*`), no CORS configuration is required; `MONETARY_CORS_ORIGINS` exists for direct API access.
 

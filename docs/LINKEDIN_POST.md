@@ -15,6 +15,6 @@ Stack: Python (FastAPI, NumPy, SciPy, pandas) with 114 tests against textbook an
 
 I'd welcome feedback from anyone in fixed-income research or portfolio management, especially on the transmission assumptions.
 
-Code: https://github.com/sdberte525-bot/monetary · Live: https://sdberte525-bot.github.io/monetary/
+Code: https://github.com/sdberte525-bot/monetary · Live: [Vercel link]
 
 #FixedIncome #MonetaryPolicy #Treasuries #QuantitativeFinance #Python #Economics

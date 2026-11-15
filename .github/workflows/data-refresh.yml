@@ -1,0 +1,53 @@
+name: Refresh official data
+
+# Re-downloads the U.S. Treasury par yield curve and FRED series, runs the test
+# suite on the new data, and commits the updated snapshot. The website (Vercel)
+# redeploys automatically on the resulting push. The site always labels this
+# data as a snapshot with its retrieval time.
+on:
+  schedule:
+    # Weekdays 23:17 UTC, after Treasury publishes the day's par yield curve.
+    - cron: "17 23 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: data-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+
+      - name: Install engine dependencies
+        working-directory: backend
+        run: pip install -r requirements-dev.txt
+
+      - name: Download official data
+        working-directory: backend
+        run: python -m scripts.build_snapshot
+
+      - name: Test engine on the new data
+        working-directory: backend
+        env: { MONETARY_DATA_MODE: snapshot }
+        run: python -m pytest -q
+
+      - name: Commit updated snapshot
+        run: |
+          if git diff --quiet -- backend/data/snapshot ':!backend/data/snapshot/metadata.json'; then
+            echo "No new observations; nothing to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backend/data/snapshot
+          last=$(python -c "import json;print(json.load(open('backend/data/snapshot/metadata.json'))['treasury_par_curve']['last_date'])")
+          git commit -q -m "Refresh official data snapshot (Treasury curve through ${last})"
+          git push
