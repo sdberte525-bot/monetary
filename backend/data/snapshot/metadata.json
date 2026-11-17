@@ -1,5 +1,5 @@
 {
-  "retrieved_at_utc": "2026-11-15T12:23:20+00:00",
+  "retrieved_at_utc": "2026-11-17T05:04:23+00:00",
   "series": {
     "DFEDTARU": {
       "name": "Federal Funds Target Range - Upper Limit",
@@ -8,8 +8,8 @@
       "source": "Federal Reserve Bank of St. Louis, FRED",
       "url": "https://fred.stlouisfed.org/series/DFEDTARU",
       "first_date": "2008-12-16",
-      "last_date": "2026-11-14",
-      "rows": 6543
+      "last_date": "2026-11-16",
+      "rows": 6545
     },
     "DFEDTARL": {
       "name": "Federal Funds Target Range - Lower Limit",
@@ -18,8 +18,8 @@
       "source": "Federal Reserve Bank of St. Louis, FRED",
       "url": "https://fred.stlouisfed.org/series/DFEDTARL",
       "first_date": "2008-12-16",
-      "last_date": "2026-11-14",
-      "rows": 6543
+      "last_date": "2026-11-16",
+      "rows": 6545
     },
     "DFEDTAR": {
       "name": "Federal Funds Target Rate (discontinued 2008-12-15)",
@@ -38,8 +38,8 @@
       "source": "Federal Reserve Bank of St. Louis, FRED",
       "url": "https://fred.stlouisfed.org/series/DFF",
       "first_date": "1954-07-01",
-      "last_date": "2026-11-12",
-      "rows": 26433
+      "last_date": "2026-11-13",
+      "rows": 26434
     },
     "CPIAUCSL": {
       "name": "CPI for All Urban Consumers: All Items (SA)",
@@ -78,8 +78,8 @@
       "source": "Federal Reserve Bank of St. Louis, FRED",
       "url": "https://fred.stlouisfed.org/series/DGS3MO",
       "first_date": "1981-09-01",
-      "last_date": "2026-11-12",
-      "rows": 11299
+      "last_date": "2026-11-13",
+      "rows": 11300
     },
     "DGS2": {
       "name": "2-Year Treasury CMT",
@@ -88,8 +88,8 @@
       "source": "Federal Reserve Bank of St. Louis, FRED",
       "url": "https://fred.stlouisfed.org/series/DGS2",
       "first_date": "1976-06-01",
-      "last_date": "2026-11-12",
-      "rows": 12609
+      "last_date": "2026-11-13",
+      "rows": 12610
     },
     "DGS10": {
       "name": "10-Year Treasury CMT",
@@ -98,8 +98,8 @@
       "source": "Federal Reserve Bank of St. Louis, FRED",
       "url": "https://fred.stlouisfed.org/series/DGS10",
       "first_date": "1962-01-02",
-      "last_date": "2026-11-12",
-      "rows": 16201
+      "last_date": "2026-11-13",
+      "rows": 16202
     },
     "T10Y2Y": {
       "name": "10-Year minus 2-Year Treasury CMT",
@@ -108,8 +108,8 @@
       "source": "Federal Reserve Bank of St. Louis, FRED",
       "url": "https://fred.stlouisfed.org/series/T10Y2Y",
       "first_date": "1976-06-01",
-      "last_date": "2026-11-13",
-      "rows": 12610
+      "last_date": "2026-11-16",
+      "rows": 12611
     },
     "T10Y3M": {
       "name": "10-Year minus 3-Month Treasury CMT",
@@ -118,16 +118,16 @@
       "source": "Federal Reserve Bank of St. Louis, FRED",
       "url": "https://fred.stlouisfed.org/series/T10Y3M",
       "first_date": "1982-01-04",
-      "last_date": "2026-11-13",
-      "rows": 11219
+      "last_date": "2026-11-16",
+      "rows": 11220
     }
   },
   "treasury_par_curve": {
     "source": "U.S. Department of the Treasury - Daily Treasury Par Yield Curve Rates",
     "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?type=daily_treasury_yield_curve",
     "first_date": "1990-01-02",
-    "last_date": "2026-11-13",
-    "rows": 9224,
+    "last_date": "2026-11-16",
+    "rows": 9225,
     "units": "percent, bond-equivalent (semiannual) par yield"
   }
 }
