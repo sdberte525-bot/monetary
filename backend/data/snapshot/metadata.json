@@ -1,5 +1,5 @@
 {
-  "retrieved_at_utc": "2026-11-26T04:59:26+00:00",
+  "retrieved_at_utc": "2026-11-27T05:00:45+00:00",
   "series": {
     "DFEDTARU": {
       "name": "Federal Funds Target Range - Upper Limit",
@@ -8,8 +8,8 @@
       "source": "Federal Reserve Bank of St. Louis, FRED",
       "url": "https://fred.stlouisfed.org/series/DFEDTARU",
       "first_date": "2008-12-16",
-      "last_date": "2026-11-25",
-      "rows": 6554
+      "last_date": "2026-11-26",
+      "rows": 6555
     },
     "DFEDTARL": {
       "name": "Federal Funds Target Range - Lower Limit",
@@ -18,8 +18,8 @@
       "source": "Federal Reserve Bank of St. Louis, FRED",
       "url": "https://fred.stlouisfed.org/series/DFEDTARL",
       "first_date": "2008-12-16",
-      "last_date": "2026-11-25",
-      "rows": 6554
+      "last_date": "2026-11-26",
+      "rows": 6555
     },
     "DFEDTAR": {
       "name": "Federal Funds Target Rate (discontinued 2008-12-15)",
